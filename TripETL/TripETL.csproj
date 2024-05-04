@@ -26,6 +26,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\TripETL.App\TripETL.App.csproj" />
       <ProjectReference Include="..\TripETL.Data\TripETL.Data.csproj" />
     </ItemGroup>
 

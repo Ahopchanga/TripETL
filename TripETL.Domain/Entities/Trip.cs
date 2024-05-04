@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using TripETL.Domain.Interfaces;
 
 namespace TripETL.Domain.Entities;
