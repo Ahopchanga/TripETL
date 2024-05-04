@@ -16,10 +16,25 @@ public class TripService : ITripService
     }
     public async Task<IEnumerable<Trip>> ReadCsvAsync(string filePath)
     {
-        using var reader = new StreamReader(filePath);
-        using var csv = new CsvReader(reader, GetCsvConfiguration());
+        var records = new List<Trip>();
 
-        var records = await ParseRecords(csv);
+        try
+        {
+            using var reader = new StreamReader(filePath);
+            using var csv = new CsvReader(reader, GetCsvConfiguration());
+
+            await csv.ReadAsync();
+            csv.ReadHeader();
+            while (await csv.ReadAsync())
+            {
+                var record = CreateTripRecordFromCsv(csv);
+                records.Add(record);
+            }
+        }
+        catch(Exception ex)
+        {
+            throw new ApplicationException($"Error in {nameof(ReadCsvAsync)}: " + ex.Message);
+        }
 
         return records;
     }
@@ -33,46 +48,51 @@ public class TripService : ITripService
             MissingFieldFound = null
         };
     }
-
-    private static async Task<List<Trip>> ParseRecords(CsvReader csv)
+    
+    private static DateTime ParseDate(string dateStr)
     {
-        var records = new List<Trip>();
-
-        await csv.ReadAsync();
-        csv.ReadHeader();
-
-        while (await csv.ReadAsync())
+        if(DateTime.TryParseExact(dateStr, "MM/dd/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
         {
-            records.Add(CreateTripRecordFromCsv(csv));
+            return date.ToUniversalTime();
         }
-
-        return records;
+        else
+        {
+            throw new ArgumentException($"Invalid date format: {dateStr}");
+        }
     }
 
-    private static Trip CreateTripRecordFromCsv(CsvReader csv)
+    private Trip CreateTripRecordFromCsv(CsvReader csv)
     {
-        var pickupDate = ConvertToUtc(csv.GetField<string>("tpep_pickup_datetime"));
-        var dropoffDate = ConvertToUtc(csv.GetField<string>("tpep_dropoff_datetime"));
-        var storeAndFwdFlag = ConvertToReadableFlag(csv.GetField<string>("store_and_fwd_flag"));
-    
-        var record = new Trip
+        try
         {
-            TpepPickupDatetime = pickupDate,
-            TpepDropoffDatetime = dropoffDate,
-            TripDistance = csv.GetField<decimal>("trip_distance"),
-            StoreAndFwdFlag = storeAndFwdFlag,
-            PULocationId = csv.GetField<int>("PULocationID"),
-            DOLocationId = csv.GetField<int>("DOLocationID"),
-            FareAmount = csv.GetField<decimal>("fare_amount"),
-            TipAmount = csv.GetField<decimal>("tip_amount"),
-        };
+            var pickupDate = ParseDate(csv.GetField<string>("tpep_pickup_datetime"));
+            var dropoffDate = ParseDate(csv.GetField<string>("tpep_dropoff_datetime"));
+            var storeAndFwdFlag = ConvertToReadableFlag(csv.GetField<string>("store_and_fwd_flag"));
 
-        if (csv.TryGetField<int>("passenger_count", out var passengerCount))
-        {
-            record.PassengerCount = passengerCount;
+            int.TryParse(csv.GetField<string>("passenger_count"), out var passengerCount);
+            decimal.TryParse(csv.GetField<string>("trip_distance"), out var tripDistance);
+            int.TryParse(csv.GetField<string>("PULocationID"), out var puLocationId);
+            int.TryParse(csv.GetField<string>("DOLocationID"), out var doLocationId);
+            decimal.TryParse(csv.GetField<string>("fare_amount"), out var fareAmount);
+            decimal.TryParse(csv.GetField<string>("tip_amount"), out var tipAmount);
+
+            return new Trip
+            {
+                TpepPickupDatetime = pickupDate,
+                TpepDropoffDatetime = dropoffDate,
+                TripDistance = tripDistance,
+                StoreAndFwdFlag = storeAndFwdFlag,
+                PULocationId = puLocationId,
+                DOLocationId = doLocationId,
+                FareAmount = fareAmount,
+                TipAmount = tipAmount,
+                PassengerCount = passengerCount
+            };
         }
-
-        return record;
+        catch(Exception ex)
+        {
+            throw new ApplicationException($"Error in {nameof(CreateTripRecordFromCsv)}: " + ex.Message);
+        }
     }
 
     private static DateTime ConvertToUtc(string dateStr)
