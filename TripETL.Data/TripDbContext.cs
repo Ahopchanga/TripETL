@@ -14,6 +14,17 @@ public class TripDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Trip>()
+            .HasIndex(t => t.TipAmount);
+
+        modelBuilder.Entity<Trip>()
+            .HasIndex(t => t.TripDistance);
+
+        modelBuilder.Entity<Trip>()
+            .HasIndex(t => new { t.TpepPickupDatetime, t.TpepDropoffDatetime });
+
+        modelBuilder.Entity<Trip>()
+            .HasIndex(t => t.PULocationId);
+        modelBuilder.Entity<Trip>()
             .HasIndex(t => new { t.TpepPickupDatetime, t.TpepDropoffDatetime, t.PassengerCount })
             .IsUnique(true);
 

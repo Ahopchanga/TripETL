@@ -40,11 +40,8 @@ namespace TripETL.Data
         public async Task DeleteAsync(int id)
         {
             var trip = await GetByIdAsync(id);
-            if (trip != null)
-            {
-                _dbContext.Trips.Remove(trip);
-                await _dbContext.SaveChangesAsync();
-            }
+            _dbContext.Trips.Remove(trip);
+            await _dbContext.SaveChangesAsync();
         }
 
         public async Task<Trip> GetByDetailsAsync(DateTime pickup, DateTime dropoff, int passengerCount)
@@ -86,8 +83,26 @@ namespace TripETL.Data
         
         public async Task RemoveWhitespaceInStringFieldsAsync()
         {
-            await _dbContext.Trips
+            var tripsWithWhitespace = _dbContext.Trips
+                .Where(t => t.StoreAndFwdFlag.Contains(" "));
+
+            await tripsWithWhitespace
                 .UpdateAsync(t => new Trip { StoreAndFwdFlag = t.StoreAndFwdFlag.Trim() });
+        }
+        
+        public async Task<string> GetLocationWithHighestTipAmountAsync()
+        {
+            var locationWithHighestTipAmount = await _dbContext.Trips
+                .GroupBy(trip => trip.PULocationId)
+                .Select(group => new
+                {
+                    PULocationId = group.Key,
+                    AverageTipAmount = group.Average(trip => trip.TipAmount)
+                })
+                .OrderByDescending(group => group.AverageTipAmount)
+                .FirstAsync();
+
+            return locationWithHighestTipAmount.PULocationId.ToString();
         }
     }
 }

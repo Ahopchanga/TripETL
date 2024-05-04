@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TripETL.App;
 using TripETL.Data;
 using TripETL.Domain.Interfaces;
 
@@ -54,7 +55,8 @@ public class Startup
     {
         return new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile(@"C:\Users\ahopc\RiderProjects\TripETL\TripETL\bin\Debug\net7.0\appsettings.json", optional: false, reloadOnChange: true)            .Build();
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
     }
 
     private bool CheckIfDataShouldBeInitialized(TripDbContext context)

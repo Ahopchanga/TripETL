@@ -10,4 +10,5 @@ public interface ITripRepository : IRepository<Trip>
     Task<IEnumerable<Trip>> SearchByPickupIdAsync(int pickupId);
     Task BulkInsertAsync(IEnumerable<Trip> trips);
     Task RemoveWhitespaceInStringFieldsAsync();
+    Task<string> GetLocationWithHighestTipAmountAsync();
 }

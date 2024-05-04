@@ -4,7 +4,7 @@ using CsvHelper.Configuration;
 using TripETL.Domain.Entities;
 using TripETL.Domain.Interfaces;
 
-namespace TripETL.Data;
+namespace TripETL.App;
 
 public class TripService : ITripService
 {
@@ -17,13 +17,25 @@ public class TripService : ITripService
     public async Task<IEnumerable<Trip>> ReadCsvAsync(string filePath)
     {
         using var reader = new StreamReader(filePath);
-        using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+        using var csv = new CsvReader(reader, GetCsvConfiguration());
+
+        var records = await ParseRecords(csv);
+
+        return records;
+    }
+
+    private static CsvConfiguration GetCsvConfiguration()
+    {
+        return new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             IgnoreBlankLines = true,
             HeaderValidated = null,
             MissingFieldFound = null
-        });
+        };
+    }
 
+    private static async Task<List<Trip>> ParseRecords(CsvReader csv)
+    {
         var records = new List<Trip>();
 
         await csv.ReadAsync();
@@ -31,33 +43,47 @@ public class TripService : ITripService
 
         while (await csv.ReadAsync())
         {
-            var pickupDateStr = csv.GetField<string>("tpep_pickup_datetime");
-            var pickupDate = DateTime.ParseExact(pickupDateStr, "MM/dd/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
-
-            var dropoffDateStr = csv.GetField<string>("tpep_dropoff_datetime");
-            var dropoffDate = DateTime.ParseExact(dropoffDateStr, "MM/dd/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
-            
-            var record = new Trip
-            {
-                TpepPickupDatetime = pickupDate,
-                TpepDropoffDatetime = dropoffDate,
-                TripDistance = csv.GetField<decimal>("trip_distance"),
-                StoreAndFwdFlag = csv.GetField<string>("store_and_fwd_flag"),
-                PULocationId = csv.GetField<int>("PULocationID"),
-                DOLocationId = csv.GetField<int>("DOLocationID"),
-                FareAmount = csv.GetField<decimal>("fare_amount"),
-                TipAmount = csv.GetField<decimal>("tip_amount"),
-            };
-
-            if (csv.TryGetField<int>("passenger_count", out var passengerCount))
-            {
-                record.PassengerCount = passengerCount;
-            }
-
-            records.Add(record);
+            records.Add(CreateTripRecordFromCsv(csv));
         }
 
         return records;
+    }
+
+    private static Trip CreateTripRecordFromCsv(CsvReader csv)
+    {
+        var pickupDate = ConvertToUtc(csv.GetField<string>("tpep_pickup_datetime"));
+        var dropoffDate = ConvertToUtc(csv.GetField<string>("tpep_dropoff_datetime"));
+        var storeAndFwdFlag = ConvertToReadableFlag(csv.GetField<string>("store_and_fwd_flag"));
+    
+        var record = new Trip
+        {
+            TpepPickupDatetime = pickupDate,
+            TpepDropoffDatetime = dropoffDate,
+            TripDistance = csv.GetField<decimal>("trip_distance"),
+            StoreAndFwdFlag = storeAndFwdFlag,
+            PULocationId = csv.GetField<int>("PULocationID"),
+            DOLocationId = csv.GetField<int>("DOLocationID"),
+            FareAmount = csv.GetField<decimal>("fare_amount"),
+            TipAmount = csv.GetField<decimal>("tip_amount"),
+        };
+
+        if (csv.TryGetField<int>("passenger_count", out var passengerCount))
+        {
+            record.PassengerCount = passengerCount;
+        }
+
+        return record;
+    }
+
+    private static DateTime ConvertToUtc(string dateStr)
+    {
+        var date = DateTime.ParseExact(dateStr, "MM/dd/yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+        return date.ToUniversalTime();
+    }
+
+    private static string ConvertToReadableFlag(string flag)
+    {
+        return flag == "N" ? "No" : "Yes";
     }
 
     public async Task LoadDataAsync(IEnumerable<Trip> trips)
@@ -77,18 +103,7 @@ public class TripService : ITripService
 
     public async Task<string> GetLocationWithHighestTipAmountAsync()
     {
-        var trips = await _repository.GetAllAsync();
-
-        return trips.GroupBy(trip => trip.PULocationId)
-            .Select(group => new
-            {
-                PULocationId = group.Key,
-                AverageTipAmount = group.Average(trip => trip.TipAmount)
-            })
-            .OrderByDescending(group => group.AverageTipAmount)
-            .Select(group => group.PULocationId)
-            .First()
-            .ToString();
+        return await _repository.GetLocationWithHighestTipAmountAsync();
     }
 
     public async Task<IEnumerable<Trip>> GetTopLongestTripsByDistanceAsync(int top)
