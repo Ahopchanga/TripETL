@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TripETL", "TripETL\TripETL.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TripETL.Domain", "TripETL.Domain\TripETL.Domain.csproj", "{FA9FD8F6-746E-41D9-9DA1-299CF6F13009}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TripETL.Data", "TripETL.Data\TripETL.Data.csproj", "{8F89410E-EFEE-437B-B925-591DAD6C4556}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{FA9FD8F6-746E-41D9-9DA1-299CF6F13009}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA9FD8F6-746E-41D9-9DA1-299CF6F13009}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA9FD8F6-746E-41D9-9DA1-299CF6F13009}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F89410E-EFEE-437B-B925-591DAD6C4556}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F89410E-EFEE-437B-B925-591DAD6C4556}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F89410E-EFEE-437B-B925-591DAD6C4556}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F89410E-EFEE-437B-B925-591DAD6C4556}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
